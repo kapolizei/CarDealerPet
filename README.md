@@ -1,7 +1,7 @@
 # Car Dealer App
 
 This is a web application that allows users to browse car brands, select the year of manufacture, and view available models for their selected options.
-
+![img_2.png](img_2.png)
 ## Features
 
 - Fetches car brands and models from the National Highway Traffic Safety Administration API.
@@ -16,7 +16,6 @@ This is a web application that allows users to browse car brands, select the yea
 git clone https://github.com/kapolizei/CarDealerPet
 cd CarDealerPet
 ```
-
 ### Install the dependencies:
 
 ```bash
