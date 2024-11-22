@@ -35,7 +35,7 @@ npm run dev
 npm run lint
 ```
 
-#### Format the code
+### Format the code
 
 ```bash
 npm run format
