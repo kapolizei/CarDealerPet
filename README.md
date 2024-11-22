@@ -29,7 +29,7 @@ npm install
 npm run dev
 ```
 
-### Linting and Formatting
+### Lint
 
 ```bash
 npm run lint
