@@ -1,101 +1,190 @@
-import Image from "next/image";
+'use client'
+import Link from 'next/link'
+import { useState, useEffect, Suspense } from 'react'
+
+const fetchVehicleModels = async (makeId, year) => {
+  const response = await fetch(
+    `https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMakeIdYear/makeId/${makeId}/modelyear/${year}?format=json`
+  )
+  const data = await response.json()
+  return data.Results || []
+}
+
+// Suspense Component
+const VehicleModels = ({ makeId, year }) => {
+  const [models, setModels] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    const loadModels = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const fetchedModels = await fetchVehicleModels(makeId, year)
+        setModels(fetchedModels)
+      } catch (error) {
+        setError('Err.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    if (makeId && year) {
+      loadModels()
+    }
+  }, [makeId, year])
+
+  if (loading) {
+    return <p className="text-blue-500 text-center">Loading...</p>
+  }
+  if (error) {
+    return <p className="text-red-500 text-center">{error}</p>
+  }
+
+  return (
+    <div className="mt-4">
+      <h2 className="font-semibold text-lg">Available models:</h2>
+      {models.length > 0 ? (
+        <div className="bg-gray-100 rounded-2xl p-4 shadow-md mt-2">
+          <ul className="list-disc pl-5">
+            {models.map((model) => (
+              <li key={model.Model_ID} className="text-sm text-gray-700">
+                {model.Model_Name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p className="text-gray-500">No models found.</p>
+      )}
+    </div>
+  )
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [makes, setMakes] = useState([])
+  const [selectedMake, setSelectedMake] = useState('')
+  const [selectedMakeId, setSelectedMakeId] = useState('')
+  const [selectedYear, setSelectedYear] = useState('')
+  const currentYear = new Date().getFullYear()
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const fetchVehicleMakes = async () => {
+    try {
+      const response = await fetch(
+        'https://vpic.nhtsa.dot.gov/api/vehicles/GetMakesForVehicleType/car?format=json'
+      )
+      const data = await response.json()
+      if (Array.isArray(data.Results)) {
+        setMakes(data.Results)
+      } else {
+        console.error('Results is not an array:', data.Results)
+      }
+    } catch (error) {
+      console.error('Error:', error)
+    }
+  }
+
+  useEffect(() => {
+    fetchVehicleMakes()
+  }, [])
+
+  const generateYears = () => {
+    const years = []
+    // Start from 2013
+    for (let year = 2013; year <= currentYear; year++) {
+      years.push(year)
+    }
+    return years
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-r from-indigo-100 via-indigo-200 to-indigo-300 p-6">
+      <h1 className="text-3xl font-bold text-center text-indigo-900 mb-6">
+        Car Dealer App
+      </h1>
+
+      <div className="w-full max-w-xs mb-4">
+        <label
+          htmlFor="vehicle-make"
+          className="block text-gray-800 text-sm font-medium"
+        >
+          Car Brand:
+        </label>
+        <select
+          id="vehicle-make"
+          value={selectedMake}
+          onChange={(e) => {
+            const makeName = e.target.value
+            setSelectedMake(makeName)
+            const make = makes.find((make) => make.MakeName === makeName)
+            setSelectedMakeId(make?.MakeId || '') // Save selected make ID
+          }}
+          className="w-full border p-3 rounded-lg bg-white shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="">Select Car Brand</option>
+          {makes.map((make) => (
+            <option key={make.MakeId} value={make.MakeName}>
+              {make.MakeName}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="w-full max-w-xs mb-6">
+        <label
+          htmlFor="model-year"
+          className="block text-gray-800 text-sm font-medium"
+        >
+          Year of Manufacture:
+        </label>
+        <select
+          id="model-year"
+          value={selectedYear}
+          onChange={(e) => setSelectedYear(e.target.value)}
+          className="w-full border p-3 rounded-lg bg-white shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="">Select Year</option>
+          {generateYears().map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="mb-6 text-center">
+        <h2 className="font-medium text-lg text-gray-700">Your Selection:</h2>
+        <p className="text-gray-600">
+          Brand: <span className="font-semibold">{selectedMake || 'None'}</span>
+        </p>
+        <p className="text-gray-600">
+          Year: <span className="font-semibold">{selectedYear || 'None'}</span>
+        </p>
+      </div>
+
+      {/* When all selected => */}
+      {selectedMakeId && selectedYear && (
+        <Suspense
+          fallback={
+            <p className="text-blue-500 text-center">Loading models...</p>
+          }
+        >
+          <VehicleModels makeId={selectedMakeId} year={selectedYear} />
+        </Suspense>
+      )}
+
+      <div className="mt-4">
+        <Link
+          href={`https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMakeIdYear/makeId/${selectedMakeId}/modelyear/${selectedYear}?format=json`}
+        >
+          <button
+            disabled={!selectedMakeId || !selectedYear}
+            className="bg-indigo-600 text-white p-3 rounded-lg w-full max-w-xs disabled:bg-gray-400 transition-colors"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            Show Models
+          </button>
+        </Link>
+      </div>
     </div>
-  );
+  )
 }
